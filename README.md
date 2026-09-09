@@ -12,6 +12,7 @@ Et samlet, responsivt kontrolcenter til Home Assistant med faner til overblik, r
 - Direkte adgang til input-select og input-datetime via Home Assistants dialog
 - Samlet sceneopsætning med lysstyrke og farve
 - Driftstal og handlinger med bekræftelse ved kritiske kommandoer
+- Designsystem fra Varme-centeret med selvstændige fanefliser, tonet hero og tydelige nøgletal
 - Professionelt kontrolpaneldesign med statusrails og præcise accentmarkeringer
 - Stabil fanenavigation, som ikke afbrydes af Home Assistants state-opdateringer
 - Responsivt layout uden vandret overflow
