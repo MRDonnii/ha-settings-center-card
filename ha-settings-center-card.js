@@ -1,4 +1,4 @@
-const VERSION = "0.4.8";
+const VERSION = "0.5.0";
 
 const TABS = [
   ["home", "Hjem", "mdi:home-heart"],
@@ -494,14 +494,13 @@ class HASettingsCenterCard extends HTMLElement {
       .section{padding-top:14px;margin-top:14px;border-top:1px solid var(--edge)}
       .section:first-child{padding-top:0;margin-top:0;border-top:0}
       .subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;align-items:start}
-      .subcard{min-width:0;border-radius:13px;padding:11px;background:var(--settings-neutral)}
+      .subcard{min-width:0;border:1px solid color-mix(in srgb,var(--accent) 14%,transparent);border-left:3px solid var(--accent);border-radius:13px;padding:11px;background:var(--settings-neutral);box-shadow:0 4px 14px rgba(0,0,0,.1)}
       .panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
       .panel-head ha-icon{--mdc-icon-size:18px;color:var(--accent)}
       .panel-head b{display:block;font-size:13px}
       .panel-head small{display:block;margin-top:2px;color:var(--secondary-text-color);font-size:11px}
-      .row-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--edge);border-radius:14px;overflow:hidden}
-      .row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--settings-neutral);border:0;width:100%;text-align:left;color:inherit;font:inherit}
-      .row+.row{border-top:1px solid var(--edge)}
+      .row-list{display:flex;flex-direction:column;gap:8px}
+      .row{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 14%,transparent);border-left:3px solid var(--accent);border-radius:12px;background:var(--settings-neutral);box-shadow:0 4px 12px rgba(0,0,0,.1);width:100%;text-align:left;color:inherit;font:inherit}
       .row.interactive{cursor:pointer}
       .row.missing{opacity:.6}
       .row-icon{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
@@ -522,12 +521,12 @@ class HASettingsCenterCard extends HTMLElement {
       .row.on.toggle-btn .row-icon{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
       .row.on.toggle-btn > ha-icon:last-child{color:var(--good)}
       .toggle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
-      .tile-btn{display:flex;align-items:center;gap:10px;min-height:54px;padding:9px 12px;border:1px solid var(--edge);border-radius:14px;background:var(--settings-neutral);cursor:pointer;min-width:0}
+      .tile-btn{position:relative;display:flex;align-items:center;gap:10px;min-height:54px;padding:9px 12px;border:1px solid color-mix(in srgb,var(--accent) 14%,transparent);border-left:3px solid var(--accent);border-radius:14px;background:var(--settings-neutral);box-shadow:0 4px 12px rgba(0,0,0,.1);cursor:pointer;min-width:0}
       .tile-btn ha-icon{--mdc-icon-size:20px;color:var(--muted);flex:0 0 auto}
       .tile-btn span{min-width:0;text-align:left}
       .tile-btn b{display:block;font-size:11.5px;font-weight:700;color:var(--primary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .tile-btn small{display:block;margin-top:2px;font-size:9.5px;color:var(--secondary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 52%,transparent);background:var(--settings-positive);box-shadow:0 0 16px color-mix(in srgb,var(--good) 12%,transparent)}
+      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 52%,transparent);border-left-color:var(--good);background:var(--settings-positive);box-shadow:0 4px 12px rgba(0,0,0,.1),0 0 16px color-mix(in srgb,var(--good) 12%,transparent)}
       .tile-btn.on ha-icon{color:var(--good)}
       .tile-btn.on small{color:var(--good)}
       .tile-btn.missing{opacity:.5}
@@ -543,8 +542,8 @@ class HASettingsCenterCard extends HTMLElement {
       .scene-btn{flex:0 0 auto;padding:6px 10px;border-radius:999px;border:1px solid var(--edge);background:var(--settings-info);color:var(--accent);font-size:10.5px;font-weight:800;cursor:pointer}
       .row.action .row-icon{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
       .row.action.danger .row-icon{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
-      .row.action{background:var(--settings-warning)}
-      .row.action.danger{background:var(--settings-negative)}
+      .row.action{background:var(--settings-warning);border-left-color:var(--warn)}
+      .row.action.danger{background:var(--settings-negative);border-left-color:var(--danger)}
       .row.action.danger .row-text b{color:var(--danger)}
       .back-btn{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border-radius:15px;border:1px solid var(--edge);background:var(--settings-info);color:var(--primary-text-color);cursor:pointer;text-align:left}
       .back-btn ha-icon:first-child{--mdc-icon-size:20px;color:var(--accent)}
