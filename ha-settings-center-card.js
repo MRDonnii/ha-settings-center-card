@@ -1,4 +1,4 @@
-const VERSION = "0.4.6";
+const VERSION = "0.4.7";
 
 const TABS = [
   ["home", "Hjem", "mdi:home-heart"],
@@ -470,7 +470,7 @@ class HASettingsCenterCard extends HTMLElement {
 
   _styles() {
     return `
-      :host{display:block;--good:var(--dashboard-success, var(--success-color, #20e3a2));--warn:var(--dashboard-warning, var(--warning-color, #f59e0b));--danger:var(--dashboard-danger, var(--error-color, #ef4444));--accent:var(--dashboard-accent, var(--info-color, #38bdf8));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(127,145,165,.2)));--muted:var(--dashboard-icon-muted, var(--disabled-text-color, #64748b));--settings-surface:var(--dashboard-card-bg, var(--ha-card-background, var(--card-background-color, #111820)));--settings-solid:var(--card-background-color, var(--ha-card-background, #111820));color:var(--primary-text-color)}
+      :host{display:block;--good:var(--dashboard-success, var(--success-color, #20e3a2));--warn:var(--dashboard-warning, var(--warning-color, #f59e0b));--danger:var(--dashboard-danger, var(--error-color, #ef4444));--accent:var(--dashboard-accent, var(--info-color, #38bdf8));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(127,145,165,.2)));--muted:var(--dashboard-icon-muted, var(--disabled-text-color, #64748b));--settings-surface:var(--dashboard-card-bg, var(--ha-card-background, var(--card-background-color, #111820)));--settings-solid:var(--card-background-color, var(--ha-card-background, #111820));--settings-neutral:linear-gradient(180deg,color-mix(in srgb,var(--primary-text-color) 4%,transparent),transparent),var(--settings-surface);--settings-info:var(--dashboard-surface-info-dark, linear-gradient(180deg,color-mix(in srgb,var(--accent) 12%,transparent),transparent),var(--settings-surface));--settings-positive:var(--dashboard-surface-positive-dark, linear-gradient(180deg,color-mix(in srgb,var(--good) 12%,transparent),transparent),var(--settings-surface));--settings-negative:var(--dashboard-surface-negative-dark, linear-gradient(180deg,color-mix(in srgb,var(--danger) 12%,transparent),transparent),var(--settings-surface));--settings-warning:var(--dashboard-surface-warn-dark, linear-gradient(180deg,color-mix(in srgb,var(--warn) 12%,transparent),transparent),var(--settings-surface));--settings-selected:var(--dashboard-tab-selected-bg, linear-gradient(180deg,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 9%,transparent)),var(--settings-surface));color:var(--primary-text-color)}
       *{box-sizing:border-box}
       button{font:inherit;color:inherit}
       button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -488,19 +488,19 @@ class HASettingsCenterCard extends HTMLElement {
       .tab{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--secondary-text-color);font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
       .tab span{overflow:hidden;text-overflow:ellipsis}
       .tab ha-icon{--mdc-icon-size:16px}
-      .tab.active{color:#fff;background:var(--accent);border-color:var(--accent)}
+      .tab.active{color:var(--dashboard-icon-active, #fff);background:var(--settings-selected);border-color:var(--dashboard-tab-selected-border, var(--accent));box-shadow:0 0 14px color-mix(in srgb,var(--accent) 12%,transparent)}
       .page[hidden]{display:none}
-      .page-panel{border:1px solid var(--edge);border-radius:16px;padding:14px;background:linear-gradient(145deg,color-mix(in srgb,var(--settings-solid) 96%,white 4%),color-mix(in srgb,var(--settings-solid) 96%,black 4%))}
+      .page-panel{border:1px solid var(--edge);border-radius:16px;padding:14px;background:var(--settings-info)}
       .section{padding-top:14px;margin-top:14px;border-top:1px solid var(--edge)}
       .section:first-child{padding-top:0;margin-top:0;border-top:0}
       .subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;align-items:start}
-      .subcard{min-width:0;border-radius:13px;padding:11px;background:color-mix(in srgb,var(--muted) 6%,transparent)}
+      .subcard{min-width:0;border-radius:13px;padding:11px;background:var(--settings-neutral)}
       .panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
       .panel-head ha-icon{--mdc-icon-size:18px;color:var(--accent)}
       .panel-head b{display:block;font-size:13px}
       .panel-head small{display:block;margin-top:2px;color:var(--secondary-text-color);font-size:11px}
       .row-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--edge);border-radius:14px;overflow:hidden}
-      .row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card-background-color);border:0;width:100%;text-align:left;color:inherit;font:inherit}
+      .row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--settings-neutral);border:0;width:100%;text-align:left;color:inherit;font:inherit}
       .row+.row{border-top:1px solid var(--edge)}
       .row.interactive{cursor:pointer}
       .row.missing{opacity:.6}
@@ -518,16 +518,16 @@ class HASettingsCenterCard extends HTMLElement {
       .toggle-btn{border-left:3px solid transparent}
       .toggle-btn .row-icon{color:var(--muted)}
       .toggle-btn > ha-icon:last-child{--mdc-icon-size:18px;color:var(--edge);flex:0 0 auto}
-      .row.on.toggle-btn{background:color-mix(in srgb,var(--good) 9%,transparent);border-left-color:var(--good)}
+      .row.on.toggle-btn{background:var(--settings-positive);border-left-color:var(--good)}
       .row.on.toggle-btn .row-icon{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
       .row.on.toggle-btn > ha-icon:last-child{color:var(--good)}
       .toggle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
-      .tile-btn{display:flex;align-items:center;gap:10px;min-height:54px;padding:9px 12px;border:1px solid var(--edge);border-radius:14px;background:color-mix(in srgb,var(--primary-text-color) 3%,transparent);cursor:pointer;min-width:0}
+      .tile-btn{display:flex;align-items:center;gap:10px;min-height:54px;padding:9px 12px;border:1px solid var(--edge);border-radius:14px;background:var(--settings-neutral);cursor:pointer;min-width:0}
       .tile-btn ha-icon{--mdc-icon-size:20px;color:var(--muted);flex:0 0 auto}
       .tile-btn span{min-width:0;text-align:left}
       .tile-btn b{display:block;font-size:11.5px;font-weight:700;color:var(--primary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .tile-btn small{display:block;margin-top:2px;font-size:9.5px;color:var(--secondary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 52%,transparent);background:color-mix(in srgb,var(--good) 14%,transparent);box-shadow:0 0 16px color-mix(in srgb,var(--good) 12%,transparent)}
+      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 52%,transparent);background:var(--settings-positive);box-shadow:0 0 16px color-mix(in srgb,var(--good) 12%,transparent)}
       .tile-btn.on ha-icon{color:var(--good)}
       .tile-btn.on small{color:var(--good)}
       .tile-btn.missing{opacity:.5}
@@ -536,15 +536,17 @@ class HASettingsCenterCard extends HTMLElement {
       .stepper strong{min-width:56px;text-align:center;font-size:11.5px;font-weight:800}
       .row[data-view="entity"] .row-icon,.row[data-view="metric"] .row-icon{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
       .mode-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-      .mode{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:9px 13px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--secondary-text-color);font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+      .mode{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:9px 13px;border-radius:12px;border:1px solid var(--edge);background:var(--settings-neutral);color:var(--secondary-text-color);font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
       .mode ha-icon{--mdc-icon-size:15px}
-      .mode.active{color:#fff;background:var(--accent);border-color:var(--accent)}
+      .mode.active{color:var(--dashboard-icon-active, #fff);background:var(--settings-selected);border-color:var(--dashboard-tab-selected-border, var(--accent))}
       .scene-row{gap:8px}
-      .scene-btn{flex:0 0 auto;padding:6px 10px;border-radius:999px;border:1px solid var(--edge);background:transparent;color:var(--accent);font-size:10.5px;font-weight:800;cursor:pointer}
+      .scene-btn{flex:0 0 auto;padding:6px 10px;border-radius:999px;border:1px solid var(--edge);background:var(--settings-info);color:var(--accent);font-size:10.5px;font-weight:800;cursor:pointer}
       .row.action .row-icon{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
       .row.action.danger .row-icon{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
+      .row.action{background:var(--settings-warning)}
+      .row.action.danger{background:var(--settings-negative)}
       .row.action.danger .row-text b{color:var(--danger)}
-      .back-btn{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border-radius:15px;border:1px solid var(--edge);background:transparent;color:var(--primary-text-color);cursor:pointer;text-align:left}
+      .back-btn{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border-radius:15px;border:1px solid var(--edge);background:var(--settings-info);color:var(--primary-text-color);cursor:pointer;text-align:left}
       .back-btn ha-icon:first-child{--mdc-icon-size:20px;color:var(--accent)}
       .back-btn div{flex:1}
       .back-btn ha-icon:last-child{--mdc-icon-size:16px;color:var(--muted)}
