@@ -1,4 +1,4 @@
-const VERSION = "0.4.2";
+const VERSION = "0.4.3";
 
 const TABS = [
   ["home", "Hjem", "mdi:home-heart"],
@@ -155,8 +155,7 @@ class HASettingsCenterCard extends HTMLElement {
       i.entity,
       `<button class="tile-btn" data-action="toggle" data-entity="${this._esc(i.entity)}" data-view="toggle">
         ${this._icon(i.icon || "mdi:toggle-switch-outline")}
-        <b>${this._esc(i.name)}</b>
-        <small data-state>Kontrollerer…</small>
+        <span><b>${this._esc(i.name)}</b><small data-state>Kontrollerer…</small></span>
       </button>`,
     );
   }
@@ -522,13 +521,15 @@ class HASettingsCenterCard extends HTMLElement {
       .row.on.toggle-btn{background:color-mix(in srgb,var(--good) 9%,transparent);border-left-color:var(--good)}
       .row.on.toggle-btn .row-icon{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
       .row.on.toggle-btn > ha-icon:last-child{color:var(--good)}
-      .toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-      .tile-btn{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--edge);border-radius:12px;background:var(--card-background-color);cursor:pointer;min-width:0}
-      .tile-btn ha-icon{--mdc-icon-size:16px;color:var(--muted);flex:0 0 auto}
-      .tile-btn b{flex:1;min-width:0;font-size:11.5px;font-weight:700;color:var(--primary-text-color);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .tile-btn small{display:none}
-      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 45%,var(--edge));background:color-mix(in srgb,var(--good) 9%,transparent)}
+      .toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+      .tile-btn{display:flex;align-items:center;gap:10px;min-height:54px;padding:9px 12px;border:1px solid var(--edge);border-radius:14px;background:color-mix(in srgb,var(--primary-text-color) 3%,transparent);cursor:pointer;min-width:0}
+      .tile-btn ha-icon{--mdc-icon-size:20px;color:var(--muted);flex:0 0 auto}
+      .tile-btn span{min-width:0;text-align:left}
+      .tile-btn b{display:block;font-size:11.5px;font-weight:700;color:var(--primary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .tile-btn small{display:block;margin-top:2px;font-size:9.5px;color:var(--secondary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 52%,transparent);background:color-mix(in srgb,var(--good) 14%,transparent);box-shadow:0 0 16px color-mix(in srgb,var(--good) 12%,transparent)}
       .tile-btn.on ha-icon{color:var(--good)}
+      .tile-btn.on small{color:var(--good)}
       .tile-btn.missing{opacity:.5}
       .stepper{display:flex;align-items:center;gap:8px;flex:0 0 auto}
       .stepper button{width:26px;height:26px;border-radius:8px;border:1px solid var(--edge);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-size:15px;font-weight:900;cursor:pointer;line-height:1}
