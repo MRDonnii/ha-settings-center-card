@@ -1,4 +1,4 @@
-const VERSION = "0.4.3";
+const VERSION = "0.4.4";
 
 const TABS = [
   ["home", "Hjem", "mdi:home-heart"],
@@ -521,7 +521,7 @@ class HASettingsCenterCard extends HTMLElement {
       .row.on.toggle-btn{background:color-mix(in srgb,var(--good) 9%,transparent);border-left-color:var(--good)}
       .row.on.toggle-btn .row-icon{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
       .row.on.toggle-btn > ha-icon:last-child{color:var(--good)}
-      .toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+      .toggle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
       .tile-btn{display:flex;align-items:center;gap:10px;min-height:54px;padding:9px 12px;border:1px solid var(--edge);border-radius:14px;background:color-mix(in srgb,var(--primary-text-color) 3%,transparent);cursor:pointer;min-width:0}
       .tile-btn ha-icon{--mdc-icon-size:20px;color:var(--muted);flex:0 0 auto}
       .tile-btn span{min-width:0;text-align:left}
