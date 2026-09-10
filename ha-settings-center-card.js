@@ -1,4 +1,4 @@
-const VERSION = "0.4.5";
+const VERSION = "0.4.6";
 
 const TABS = [
   ["home", "Hjem", "mdi:home-heart"],
@@ -470,11 +470,11 @@ class HASettingsCenterCard extends HTMLElement {
 
   _styles() {
     return `
-      :host{display:block;--good:var(--dashboard-success, var(--success-color, #20e3a2));--warn:var(--dashboard-warning, var(--warning-color, #f59e0b));--danger:var(--dashboard-danger, var(--error-color, #ef4444));--accent:var(--dashboard-accent, var(--info-color, #38bdf8));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(127,145,165,.2)));--muted:var(--dashboard-icon-muted, var(--disabled-text-color, #64748b));color:var(--primary-text-color)}
+      :host{display:block;--good:var(--dashboard-success, var(--success-color, #20e3a2));--warn:var(--dashboard-warning, var(--warning-color, #f59e0b));--danger:var(--dashboard-danger, var(--error-color, #ef4444));--accent:var(--dashboard-accent, var(--info-color, #38bdf8));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(127,145,165,.2)));--muted:var(--dashboard-icon-muted, var(--disabled-text-color, #64748b));--settings-surface:var(--dashboard-card-bg, var(--ha-card-background, var(--card-background-color, #111820)));--settings-solid:var(--card-background-color, var(--ha-card-background, #111820));color:var(--primary-text-color)}
       *{box-sizing:border-box}
       button{font:inherit;color:inherit}
       button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-      ha-card{padding:16px;border-radius:22px;background:var(--card-background-color);border:1px solid var(--edge);color:var(--primary-text-color);box-shadow:var(--ha-card-box-shadow)}
+      ha-card{padding:16px;border-radius:22px;background:radial-gradient(circle at 94% 0,color-mix(in srgb,var(--accent) 10%,transparent),transparent 34%),var(--settings-surface);border:1px solid var(--edge);color:var(--primary-text-color);box-shadow:var(--dashboard-shadow-deep, var(--ha-card-box-shadow, 0 18px 50px rgba(0,0,0,.22)))}
       .head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
       .head ha-icon{--mdc-icon-size:24px;color:var(--accent)}
       .head strong{display:block;font-size:16px}
@@ -490,7 +490,7 @@ class HASettingsCenterCard extends HTMLElement {
       .tab ha-icon{--mdc-icon-size:16px}
       .tab.active{color:#fff;background:var(--accent);border-color:var(--accent)}
       .page[hidden]{display:none}
-      .page-panel{border:1px solid var(--edge);border-radius:16px;padding:14px;background:var(--card-background-color)}
+      .page-panel{border:1px solid var(--edge);border-radius:16px;padding:14px;background:linear-gradient(145deg,color-mix(in srgb,var(--settings-solid) 96%,white 4%),color-mix(in srgb,var(--settings-solid) 96%,black 4%))}
       .section{padding-top:14px;margin-top:14px;border-top:1px solid var(--edge)}
       .section:first-child{padding-top:0;margin-top:0;border-top:0}
       .subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;align-items:start}
