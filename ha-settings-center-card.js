@@ -1,40 +1,618 @@
-const VERSION="0.1.8";
-class HASettingsCenterCard extends HTMLElement{
- constructor(){super();this.attachShadow({mode:"open"});this._config={};this._hass=null;this._tab="overview";this._stateSig="";this._interactionUntil=0;this._deferredRender=null}
- static getStubConfig(){return{title:"Kontrolcenter",default_tab:"overview",overview:{},tabs:{automation_groups:[],control_groups:[],operations:{}}}}
- static async getConfigElement(){await customElements.whenDefined("ha-settings-center-card-editor");return document.createElement("ha-settings-center-card-editor")}
- connectedCallback(){if(this._interactionBound)return;this._interactionBound=true;this.addEventListener("pointerdown",()=>{this._interactionUntil=Date.now()+900},{capture:true})}
- setConfig(c){this._config={title:"Kontrolcenter",default_tab:"overview",...c};this._tab=c.default_tab||this._tab;this._stateSig="";this._render()}
- set hass(h){this._hass=h;const sig=this._stateSignature(h);if(sig!==this._stateSig){this._stateSig=sig;if(Date.now()<this._interactionUntil){clearTimeout(this._deferredRender);this._deferredRender=setTimeout(()=>this._render(),Math.max(0,this._interactionUntil-Date.now()))}else this._render()}}
- _stateSignature(h){const ids=new Set(),scan=v=>{if(Array.isArray(v))v.forEach(scan);else if(v&&typeof v==="object")Object.values(v).forEach(scan);else if(typeof v==="string"&&/^[a-z_]+\.[a-z0-9_]+$/.test(v)&&h?.states?.[v])ids.add(v)};scan(this._config);return JSON.stringify([...ids].sort().map(id=>{const e=h.states[id];return[id,e.state,e.attributes]}))}
- getCardSize(){return 8} getGridOptions(){return{columns:12,min_columns:6,rows:"auto"}}
- _e(id){return this._hass?.states?.[id]} _state(id){return this._e(id)?.state??"unavailable"}
- _esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
- _isOn(id){return ["on","home","open","active","running"].includes(this._state(id))}
- _available(id){return !!this._e(id)&&!["unknown","unavailable"].includes(this._state(id))}
- _icon(i){return `<ha-icon icon="${this._esc(i||"mdi:cog-outline")}"></ha-icon>`}
- _call(service,data={},target){const [domain,name]=service.split(".");return this._hass?.callService(domain,name,data,target)}
- _toggle(id){if(this._available(id))this._call("homeassistant.toggle",{}, {entity_id:id})}
- _more(id){this.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:id},bubbles:true,composed:true}))}
- _navigate(path){history.pushState(null,"",path);window.dispatchEvent(new Event("location-changed"))}
- _friendlyState(id){const e=this._e(id),s=e?.state;if(!e)return"Mangler";if(s==="on")return"Aktiv";if(s==="off")return"Deaktiv";if(["unknown","unavailable"].includes(s))return"Ikke tilgængelig";return e.attributes?.friendly_name&&s?String(s).replaceAll("_"," "):s}
- _tabs(){return[{id:"overview",name:"Overblik",icon:"mdi:view-dashboard-outline"},{id:"routines",name:"Rutiner",icon:"mdi:calendar-sync-outline"},{id:"controls",name:"Genveje",icon:"mdi:gesture-tap-button"},{id:"operations",name:"Drift",icon:"mdi:server-security"}]}
- _problem(item){const e=this._e(item.entity);return item.binary?this._isOn(item.entity):Number(e?.state)>0||["critical","warn","error","failed"].includes(String(e?.state).toLowerCase())}
- _status(item){const e=this._e(item.entity),binary=item.binary,problem=this._problem(item);let detail="Alt er normalt";if(problem)detail=binary?"Registreret":`${e?.state||0} kræver fokus`;else if(e&&!Number.isFinite(Number(e.state)))detail=this._friendlyState(item.entity);return `<button class="status ${problem?"problem":"ok"}" data-more="${this._esc(item.entity)}"><span class="ico">${this._icon(item.icon)}</span><span><b>${this._esc(item.name)}</b><small>${this._esc(detail)}</small></span><i></i></button>`}
- _toggleItem(item){const on=this._isOn(item.entity),avail=this._available(item.entity);return `<button class="toggle ${on?"on":""} ${avail?"":"missing"}" data-toggle="${this._esc(item.entity)}"><span class="ico">${this._icon(item.icon||"mdi:toggle-switch-outline")}</span><span><b>${this._esc(item.name)}</b><small>${avail?(on?"Aktiv":"Deaktiv"):"Ikke tilgængelig"}</small></span><i><em></em></i></button>`}
- _numberItem(item){const e=this._e(item.entity),value=e?.state??"—",unit=e?.attributes?.unit_of_measurement||item.unit||"",sensor=item.sensor_entity?this._state(item.sensor_entity):null;return `<article class="number"><div><b>${this._esc(item.name)}</b>${sensor!==null?`<small>Målt ${this._esc(sensor)}${this._esc(item.sensor_unit||"")}</small>`:""}</div><div class="step"><button data-step="${this._esc(item.entity)}|-">−</button><strong>${this._esc(value)}<small>${this._esc(unit)}</small></strong><button data-step="${this._esc(item.entity)}|+">+</button></div></article>`}
- _entityItem(item){const state=this._friendlyState(item.entity);return `<button class="select-row" data-more="${this._esc(item.entity)}">${this._icon(item.icon||"mdi:tune-variant")}<span><b>${this._esc(item.name)}</b><small>${this._esc(state)}</small></span>${this._icon("mdi:chevron-right")}</button>`}
- _group(g){const kind=g.kind||"toggle",items=g.items||[],active=items.filter(x=>this._isOn(x.entity)).length,missing=items.filter(x=>!this._available(x.entity)).length,badge=kind==="toggle"?`${active}/${items.length} aktive`:missing?`${missing} mangler`:`${items.length} valg`;return `<section class="group"><header><span class="section-icon">${this._icon(g.icon)}</span><div><h3>${this._esc(g.title)}</h3>${g.subtitle?`<p>${this._esc(g.subtitle)}</p>`:""}</div><span class="count ${missing?"warn":""}">${badge}</span></header><div class="items kind-${kind}">${items.map(x=>kind==="number"?this._numberItem(x):kind==="entity"?this._entityItem(x):this._toggleItem(x)).join("")}</div></section>`}
- _overview(){const o=this._config.overview||{},mode=o.mode||{},current=this._state(mode.entity);return `<div class="pane overview"><section class="hero"><div><span class="eyebrow">SYSTEM & HJEM</span><h2>${this._esc(this._config.title)}</h2><p>Samlet opsætning, rutiner og drift ét sted</p></div><div class="hero-stats"><span><small>HUS-MODE</small><b>${this._esc(current)}</b></span><span><small>SYSTEM</small><b>${(o.status_items||[]).filter(x=>this._available(x.entity)&&!this._problem(x)).length}/${(o.status_items||[]).length} OK</b></span></div></section><section class="status-grid">${(o.status_items||[]).map(x=>this._status(x)).join("")}</section><div class="overview-grid"><section class="group mode"><header><span class="section-icon">${this._icon("mdi:home-heart")}</span><div><h3>Hus-mode</h3><p>Tilpas huset til situationen</p></div></header><div class="mode-grid">${(mode.options||[]).map(x=>`<button class="mode-btn ${current===x.value?"active":""}" data-mode="${this._esc(mode.entity)}|${this._esc(x.value)}">${this._icon(x.icon)}<b>${this._esc(x.name)}</b></button>`).join("")}</div><div class="items kind-toggle">${(mode.overrides||[]).map(x=>this._toggleItem(x)).join("")}</div></section><section class="group quick"><header><span class="section-icon">${this._icon("mdi:tune-variant")}</span><div><h3>Dashboard</h3><p>Visning og globale valg</p></div></header><div class="items kind-toggle">${(o.dashboard_items||[]).map(x=>this._toggleItem(x)).join("")}</div>${o.font_entity?`<button class="select-row" data-more="${this._esc(o.font_entity)}">${this._icon("mdi:format-font")}<span><b>Dashboard-font</b><small>${this._esc(this._state(o.font_entity))}</small></span>${this._icon("mdi:chevron-right")}</button>`:""}</section></div></div>`}
- _routines(){return `<div class="pane"><div class="pane-title"><span><b>Automatik & rutiner</b><small>Presence, lys, tider og varme</small></span></div><div class="groups">${(this._config.automation_groups||[]).map(g=>this._group(g)).join("")}</div></div>`}
- _controls(){return `<div class="pane"><div class="pane-title"><span><b>Direkte styring</b><small>Maskiner, udelys og scener</small></span></div><div class="groups">${(this._config.control_groups||[]).map(g=>this._group(g)).join("")}</div>${this._scene()}</div>`}
- _scene(){const s=this._config.scene;if(!s)return"";return `<section class="group scene"><header><span class="section-icon">${this._icon("mdi:movie-open")}</span><div><h3>${this._esc(s.title)}</h3><p>Lysniveau og farve til film</p></div>${this._toggleItem({entity:s.toggle_entity,name:s.toggle_name,icon:"mdi:movie-open"})}</header><div class="scene-grid">${(s.lights||[]).map(l=>`<article><span class="ico">${this._icon(l.icon)}</span><div><b>${this._esc(l.name)}</b><small>${this._esc(this._state(l.brightness_entity))}% · ${this._esc(this._state(l.color_entity))}</small></div><button data-more="${this._esc(l.brightness_entity)}">Lys</button><button data-more="${this._esc(l.color_entity)}">Farve</button></article>`).join("")}</div></section>`}
- _operations(){const o=this._config.operations||{};return `<div class="pane"><div class="pane-title"><span><b>Drift & vedligehold</b><small>Systemstatus og sikre handlinger</small></span>${o.info_path?`<button class="link" data-nav="${this._esc(o.info_path)}">Systeminfo ${this._icon("mdi:arrow-right")}</button>`:""}</div><section class="metrics">${(o.metrics||[]).map(m=>`<button data-more="${this._esc(m.entity)}"><span>${this._icon(m.icon)}</span><small>${this._esc(m.name)}</small><b>${this._esc(this._state(m.entity))}${this._esc(m.unit||"")}</b></button>`).join("")}</section><div class="action-groups">${(o.groups||[]).map(g=>`<section class="group actions"><header><span class="section-icon">${this._icon(g.icon)}</span><div><h3>${this._esc(g.title)}</h3><p>${this._esc(g.subtitle||"")}</p></div></header><div>${(g.items||[]).map(a=>`<button class="action ${a.danger?"danger":""}" data-action="${this._esc(JSON.stringify(a))}"><span>${this._icon(a.icon)}</span><span><b>${this._esc(a.name)}</b><small>${this._esc(a.description||"")}</small></span>${this._icon("mdi:chevron-right")}</button>`).join("")}</div></section>`).join("")}</div></div>`}
- _render(){if(!this.shadowRoot)return;const body=this._tab==="overview"?this._overview():this._tab==="routines"?this._routines():this._tab==="controls"?this._controls():this._operations();this.shadowRoot.innerHTML=`<style>
-:host{display:block;--accent:var(--dashboard-accent, var(--primary-color, #62b5ff));--good:var(--dashboard-success, var(--success-color, #54d9aa));--warn:var(--dashboard-warning, var(--warning-color, #ffbd59));--danger:var(--dashboard-danger, var(--error-color, #ff667a));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(255,255,255,.12)));--surface:var(--surface,var(--ha-card-background,var(--card-background-color,#111d2a)));color:var(--primary-text-color)}*{box-sizing:border-box}button{font:inherit;color:inherit}ha-card{overflow:hidden;border:1px solid var(--edge);border-radius:28px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 4%,transparent),transparent 42%),var(--surface);box-shadow:var(--dashboard-shadow-deep,var(--ha-card-box-shadow));}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:10px;border-bottom:1px solid var(--edge);background:color-mix(in srgb,var(--surface) 90%,transparent);position:sticky;top:0;z-index:8}.tabs button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--secondary-text-color);cursor:pointer;font-weight:750}.tabs button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);color:var(--accent)}.tabs ha-icon{--mdc-icon-size:20px}.pane{padding:18px}.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:8px 4px 22px}.eyebrow{color:var(--accent);font-size:11px;font-weight:800;letter-spacing:.16em}.hero h2{margin:5px 0 3px;font-size:clamp(28px,5vw,48px);line-height:1}.hero p,.group header p{margin:0;color:var(--secondary-text-color);font-size:13px}.hero-stats{display:flex;gap:10px}.hero-stats span{min-width:110px;padding:13px 15px;border:1px solid var(--edge);border-radius:16px;background:rgba(255,255,255,.025)}.hero-stats small,.metric small{display:block;color:var(--secondary-text-color);font-size:9px;font-weight:800;letter-spacing:.08em}.hero-stats b{display:block;margin-top:5px;font-size:18px}.status-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:15px}.status{display:grid;grid-template-columns:40px 1fr 7px;align-items:center;gap:9px;min-width:0;padding:12px;border:1px solid var(--edge);border-radius:16px;background:rgba(255,255,255,.025);text-align:left;cursor:pointer}.status .ico,.toggle .ico,.scene-grid .ico{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}.status.problem .ico{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}.status b,.toggle b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.status small,.toggle small,.scene-grid small,.action small{display:block;margin-top:2px;color:var(--secondary-text-color);font-size:10px}.status i{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 10px var(--good)}.status.problem i{background:var(--danger);box-shadow:0 0 10px var(--danger);animation:pulse 1.8s infinite}.overview-grid,.groups,.action-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.group{min-width:0;padding:15px;border:1px solid var(--edge);border-radius:20px;background:rgba(255,255,255,.018)}.group header{display:flex;align-items:center;gap:11px;margin-bottom:13px}.group header h3{margin:0 0 2px;font-size:16px}.section-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}.count{margin-left:auto;padding:4px 8px;border-radius:999px;background:color-mix(in srgb,var(--good) 12%,transparent);color:var(--good);font-size:10px;font-weight:750}.count.warn{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger)}.items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.items.kind-number{grid-template-columns:1fr}.toggle{display:grid;grid-template-columns:36px 1fr 38px;align-items:center;gap:8px;min-width:0;padding:9px;border:1px solid var(--edge);border-radius:14px;background:rgba(255,255,255,.025);text-align:left;cursor:pointer}.toggle .ico{width:34px;height:34px;background:rgba(255,255,255,.055);color:var(--secondary-text-color)}.toggle>i{position:relative;width:34px;height:20px;border-radius:999px;background:rgba(255,255,255,.12)}.toggle>i em{position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--secondary-text-color);transition:.25s}.toggle.on{border-color:color-mix(in srgb,var(--good) 40%,transparent)}.toggle.on .ico{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}.toggle.on>i{background:color-mix(in srgb,var(--good) 45%,transparent)}.toggle.on>i em{left:17px;background:var(--good)}.toggle.missing{opacity:.72;border-color:color-mix(in srgb,var(--danger) 45%,transparent)}.toggle.missing .ico{color:var(--danger);background:color-mix(in srgb,var(--danger) 13%,transparent)}.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.mode-btn{display:grid;place-items:center;gap:5px;min-height:72px;border:1px solid var(--edge);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer}.mode-btn ha-icon{color:var(--secondary-text-color)}.mode-btn b{font-size:11px}.mode-btn.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}.mode-btn.active ha-icon{color:var(--accent)}.select-row{display:grid;grid-template-columns:35px 1fr 22px;align-items:center;width:100%;margin-top:8px;padding:11px;border:1px solid var(--edge);border-radius:14px;background:rgba(255,255,255,.025);text-align:left;cursor:pointer}.select-row span b,.select-row span small{display:block}.select-row span small{color:var(--secondary-text-color);font-size:10px}.pane-title{display:flex;align-items:center;justify-content:space-between;margin:0 2px 15px}.pane-title span b,.pane-title span small{display:block}.pane-title span b{font-size:21px}.pane-title span small{margin-top:3px;color:var(--secondary-text-color);font-size:12px}.number{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid var(--edge);border-radius:14px}.number>div:first-child b,.number>div:first-child small{display:block}.number>div:first-child b{font-size:12px}.number>div:first-child small{color:var(--secondary-text-color);font-size:9px}.step{display:flex;align-items:center;gap:5px}.step button{width:29px;height:29px;border:1px solid var(--edge);border-radius:9px;background:rgba(255,255,255,.05);cursor:pointer}.step strong{min-width:54px;text-align:center;font-size:14px}.step strong small{font-size:9px;color:var(--secondary-text-color)}.scene{margin-top:15px}.scene header>.toggle{margin-left:auto;min-width:190px}.scene-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.scene-grid article{display:grid;grid-template-columns:40px 1fr auto auto;align-items:center;gap:8px;padding:11px;border:1px solid var(--edge);border-radius:15px}.scene-grid article button,.link{padding:7px 10px;border:1px solid var(--edge);border-radius:10px;background:rgba(255,255,255,.05);cursor:pointer;font-size:10px}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:15px}.metrics button{display:grid;grid-template-columns:35px 1fr;grid-template-areas:'i n' 'i v';align-items:center;padding:11px;border:1px solid var(--edge);border-radius:15px;background:rgba(255,255,255,.025);text-align:left;cursor:pointer}.metrics button>span{grid-area:i;color:var(--accent)}.metrics small{grid-area:n}.metrics b{grid-area:v;font-size:13px}.actions>div{display:grid;gap:8px}.action{display:grid;grid-template-columns:38px 1fr 22px;align-items:center;gap:9px;width:100%;padding:10px;border:1px solid var(--edge);border-radius:14px;background:rgba(255,255,255,.025);text-align:left;cursor:pointer}.action>span:first-child{color:var(--warn)}.action.danger{border-color:color-mix(in srgb,var(--danger) 35%,transparent)}.action.danger>span:first-child{color:var(--danger)}.link{display:flex;align-items:center;gap:6px;color:var(--accent)}.tabs{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 96%,transparent),color-mix(in srgb,var(--surface) 88%,transparent));box-shadow:0 8px 24px rgba(0,0,0,.08)}.tabs button{position:relative;background:transparent;border-color:transparent;transition:background .2s ease,color .2s ease,transform .15s ease}.tabs button:after{content:"";position:absolute;left:20%;right:20%;bottom:4px;height:2px;border-radius:2px;background:transparent;transition:.2s}.tabs button.active{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 10%,transparent),transparent);border-color:color-mix(in srgb,var(--accent) 20%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--accent) 20%,white)}.tabs button.active:after{left:12%;right:12%;background:var(--accent);box-shadow:0 0 9px var(--accent)}.tabs button:active{transform:translateY(1px)}.group{background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012) 50%,rgba(0,0,0,.055));box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 10px 28px rgba(0,0,0,.08)}.status,.toggle,.select-row,.number,.scene-grid article,.metrics button,.action{position:relative;background:linear-gradient(100deg,rgba(255,255,255,.04),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.045);transition:background .2s,border-color .2s,transform .15s}.status:before,.toggle:before,.action:before{content:"";position:absolute;left:-1px;top:25%;bottom:25%;width:2px;border-radius:2px;background:var(--muted,var(--secondary-text-color));opacity:.42}.status.ok:before,.toggle.on:before{background:var(--good);opacity:1;box-shadow:0 0 8px var(--good)}.status.problem:before,.toggle.missing:before,.action.danger:before{background:var(--danger);opacity:1;box-shadow:0 0 8px color-mix(in srgb,var(--danger) 55%,transparent)}.toggle.on{background:linear-gradient(100deg,color-mix(in srgb,var(--good) 10%,transparent),rgba(255,255,255,.012) 52%);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--good) 12%,white)}.toggle.missing{opacity:.78;border-color:color-mix(in srgb,var(--danger) 34%,transparent)}.mode-btn{position:relative;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.01));box-shadow:inset 0 1px 0 rgba(255,255,255,.055);transition:.2s}.mode-btn.active{background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 17%,transparent),color-mix(in srgb,var(--accent) 5%,transparent));border-color:color-mix(in srgb,var(--accent) 62%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--accent) 24%,white),0 0 18px color-mix(in srgb,var(--accent) 10%,transparent)}.mode-btn.active:after{content:"";position:absolute;left:24%;right:24%;bottom:5px;height:2px;border-radius:2px;background:var(--accent);box-shadow:0 0 7px var(--accent)}.status:hover,.toggle:hover,.select-row:hover,.number:hover,.mode-btn:hover,.metrics button:hover,.action:hover{border-color:color-mix(in srgb,var(--accent) 30%,var(--edge));background-color:rgba(255,255,255,.025)}.status:active,.toggle:active,.select-row:active,.mode-btn:active,.metrics button:active,.action:active,.step button:active{transform:translateY(1px)}.action.danger{background:linear-gradient(100deg,color-mix(in srgb,var(--danger) 8%,transparent),rgba(255,255,255,.01) 56%)}.step button,.scene-grid article button,.link{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.018));box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}.section-icon,.status .ico,.toggle .ico,.scene-grid .ico{box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}@keyframes pulse{50%{opacity:.35;transform:scale(.8)}}
-.tabs{position:relative;top:auto;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:12px 14px;background:transparent;border-bottom:0;box-shadow:none}.tabs button{justify-content:flex-start;min-height:68px;padding:12px 14px;border:1px solid var(--edge);border-radius:17px;background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.012) 60%,rgba(0,0,0,.13));box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 8px 20px rgba(0,0,0,.10);font-size:13px}.tabs button ha-icon{--mdc-icon-size:27px;opacity:.72}.tabs button.active{border-color:color-mix(in srgb,var(--accent) 58%,transparent);border-left:3px solid var(--accent);background:radial-gradient(circle at 18% 25%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 46%),linear-gradient(145deg,color-mix(in srgb,var(--accent) 11%,transparent),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--accent) 24%,white),0 9px 24px color-mix(in srgb,var(--accent) 13%,transparent)}.tabs button.active:after{left:14px;right:14px;bottom:7px}.hero{margin:-2px -1px 16px;padding:20px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--edge));border-radius:22px;background:radial-gradient(circle at 90% 10%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 40%),linear-gradient(145deg,color-mix(in srgb,var(--accent) 6%,transparent),rgba(255,255,255,.012))}.hero-stats span{background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}.status-grid{padding:12px;border:1px solid var(--edge);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.025),rgba(0,0,0,.035))}.pane-title{padding:15px 16px;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--edge));border-radius:20px;background:radial-gradient(circle at 90% 10%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 42%),rgba(255,255,255,.012)}@media(max-width:760px){.tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:9px}.tabs button{flex-direction:row;justify-content:flex-start;min-height:62px;padding:10px 12px;font-size:11px}.tabs button ha-icon{--mdc-icon-size:24px}.hero{padding:16px;margin-bottom:12px}.hero h2{font-size:30px}.status-grid{padding:8px}}@media(max-width:760px){.tabs{gap:4px;padding:7px}.tabs button{flex-direction:column;gap:2px;min-height:52px;font-size:9px}.pane{padding:11px}.hero{align-items:center}.hero p{font-size:11px}.hero-stats span{min-width:0;padding:9px}.hero-stats span:first-child{display:none}.status-grid{grid-template-columns:repeat(2,1fr)}.status-grid .status:last-child{grid-column:span 2}.overview-grid,.groups,.action-groups{grid-template-columns:1fr}.items{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,1fr)}.metrics button:last-child{grid-column:span 2}.scene-grid{grid-template-columns:1fr}.scene header{flex-wrap:wrap}.scene header>.toggle{margin-left:0;min-width:100%;}.mode-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:390px){.hero-stats{display:none}.status{grid-template-columns:34px 1fr 6px;padding:8px}.status .ico{width:32px;height:32px}.items{grid-template-columns:1fr}.mode-grid{grid-template-columns:repeat(2,1fr)}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}</style><ha-card><nav class="tabs">${this._tabs().map(t=>`<button data-tab="${t.id}" class="${this._tab===t.id?"active":""}">${this._icon(t.icon)}<span>${t.name}</span></button>`).join("")}</nav>${body}</ha-card>`;this._bind()}
- _bind(){const r=this.shadowRoot;r.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{this._tab=b.dataset.tab;this._render()});r.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>this._toggle(b.dataset.toggle));r.querySelectorAll("[data-more]").forEach(b=>b.onclick=()=>this._more(b.dataset.more));r.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>this._navigate(b.dataset.nav));r.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{const [entity,option]=b.dataset.mode.split("|");this._call("input_select.select_option",{option},{entity_id:entity})});r.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{const [entity,d]=b.dataset.step.split("|");this._call(`input_number.${d==="+"?"increment":"decrement"}`,{}, {entity_id:entity})});r.querySelectorAll("[data-action]").forEach(b=>b.onclick=()=>{const a=JSON.parse(b.dataset.action);if(a.confirm&&!confirm(a.confirm))return;if(a.service)this._call(a.service,a.data||{},a.entity?{entity_id:a.entity}:a.target);else if(a.path)this._navigate(a.path)})}
+const VERSION = "0.4.0";
+
+const TABS = [
+  ["home", "Hjem", "mdi:home-heart"],
+  ["lighting", "Lysautomatik", "mdi:motion-sensor"],
+  ["routines", "Rutiner", "mdi:calendar-sync-outline"],
+  ["equipment", "Udstyr", "mdi:tools"],
+  ["system", "Drift", "mdi:server-security"],
+];
+
+class HASettingsCenterCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._config = {};
+    this._hass = null;
+    this._tab = "home";
+    this._configSig = "";
+    this._stateSig = "";
+    this._seen = new Set();
+    this.shadowRoot.addEventListener("click", (e) => this._click(e));
+  }
+
+  static getStubConfig() {
+    return { title: "Indstillinger", default_tab: "home", overview: {}, rooms: [], ambient_items: [], routine_groups: [], control_groups: [], operations: {} };
+  }
+
+  static async getConfigElement() {
+    await customElements.whenDefined("ha-settings-center-card-editor");
+    return document.createElement("ha-settings-center-card-editor");
+  }
+
+  setConfig(config) {
+    if (!config) throw new Error("Kortet kræver en konfiguration");
+    const next = { title: "Indstillinger", default_tab: "home", ...config };
+    const sig = JSON.stringify(next);
+    this._config = next;
+    if (sig !== this._configSig) {
+      this._configSig = sig;
+      this._tab = next.default_tab || "home";
+      this._render();
+    }
+    this._patch();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    const sig = this._signature(hass);
+    if (sig !== this._stateSig) {
+      this._stateSig = sig;
+      this._patch();
+    }
+  }
+
+  getCardSize() {
+    return 10;
+  }
+  getGridOptions() {
+    return { columns: 12, min_columns: 6, rows: "auto" };
+  }
+
+  _e(id) {
+    return this._hass?.states?.[id];
+  }
+  _state(id) {
+    return this._e(id)?.state ?? "unavailable";
+  }
+  _available(id) {
+    return !!this._e(id) && !["unknown", "unavailable"].includes(this._state(id));
+  }
+  _on(id) {
+    return ["on", "home", "open", "active", "running", "playing"].includes(this._state(id));
+  }
+  _esc(v) {
+    return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  _icon(i) {
+    return `<ha-icon icon="${this._esc(i || "mdi:cog-outline")}"></ha-icon>`;
+  }
+  _signature(h) {
+    const ids = new Set();
+    const scan = (v) => {
+      if (Array.isArray(v)) v.forEach(scan);
+      else if (v && typeof v === "object") Object.values(v).forEach(scan);
+      else if (typeof v === "string" && /^[a-z_]+\.[a-z0-9_]+$/.test(v) && h?.states?.[v]) ids.add(v);
+    };
+    scan(this._config);
+    return JSON.stringify(
+      [...ids].sort().map((id) => {
+        const e = h.states[id];
+        return [id, e.state, e.last_updated, e.attributes?.unit_of_measurement, e.attributes?.friendly_name];
+      }),
+    );
+  }
+  _friendly(id) {
+    const e = this._e(id);
+    if (!e) return "Mangler";
+    if (e.state === "on") return "Aktiv";
+    if (e.state === "off") return "Deaktiv";
+    if (["unknown", "unavailable"].includes(e.state)) return "Ikke tilgængelig";
+    return String(e.state).replaceAll("_", " ");
+  }
+  _problem(i) {
+    const s = String(this._state(i.entity)).toLowerCase();
+    if (!this._available(i.entity)) return true;
+    if (i.binary) return this._on(i.entity);
+    return Number(s) > 0 || ["critical", "warn", "warning", "error", "failed"].includes(s);
+  }
+  _once(id, html) {
+    if (!id || this._seen.has(id)) return "";
+    this._seen.add(id);
+    return html;
+  }
+
+  // ---- row builders ----
+
+  _status(i) {
+    return this._once(
+      i.entity,
+      `<button class="row interactive" data-action="more" data-entity="${this._esc(i.entity)}" data-view="status" data-binary="${!!i.binary}">
+        <span class="row-icon">${this._icon(i.icon)}</span>
+        <span class="row-text"><b>${this._esc(i.name)}</b><small data-state>Kontrollerer…</small></span>
+        <i class="dot"></i>
+      </button>`,
+    );
+  }
+
+  _toggle(i) {
+    return this._once(
+      i.entity,
+      `<button class="row interactive toggle-btn" data-action="toggle" data-entity="${this._esc(i.entity)}" data-view="toggle">
+        <span class="row-icon">${this._icon(i.icon || "mdi:toggle-switch-outline")}</span>
+        <span class="row-text"><b>${this._esc(i.name)}</b><small data-state>Kontrollerer…</small></span>
+        ${this._icon("mdi:check-circle")}
+      </button>`,
+    );
+  }
+
+  _number(i, label) {
+    return this._once(
+      i.entity,
+      `<div class="row" data-entity="${this._esc(i.entity)}" data-view="number" data-sensor="${this._esc(i.sensor_entity || "")}" data-sensor-unit="${this._esc(i.sensor_unit || "")}">
+        <span class="row-text"><b>${this._esc(label || i.name)}</b><small data-measured>${i.sensor_entity ? "Måler…" : ""}</small></span>
+        <div class="stepper">
+          <button data-action="step" data-direction="-">−</button>
+          <strong data-value>—</strong>
+          <button data-action="step" data-direction="+">+</button>
+        </div>
+      </div>`,
+    );
+  }
+
+  _toggleTile(i) {
+    return this._once(
+      i.entity,
+      `<button class="tile-btn" data-action="toggle" data-entity="${this._esc(i.entity)}" data-view="toggle">
+        <span class="row-icon">${this._icon(i.icon || "mdi:toggle-switch-outline")}</span>
+        <b>${this._esc(i.name)}</b>
+        <small data-state>Kontrollerer…</small>
+      </button>`,
+    );
+  }
+
+  _entityRow(i) {
+    return this._once(
+      i.entity,
+      `<button class="row interactive" data-action="more" data-entity="${this._esc(i.entity)}" data-view="entity">
+        <span class="row-icon">${this._icon(i.icon)}</span>
+        <span class="row-text"><b>${this._esc(i.name)}</b><small data-state>Kontrollerer…</small></span>
+        ${this._icon("mdi:chevron-right")}
+      </button>`,
+    );
+  }
+
+  _metric(i) {
+    return this._once(
+      i.entity,
+      `<button class="row interactive" data-action="more" data-entity="${this._esc(i.entity)}" data-view="metric">
+        <span class="row-icon">${this._icon(i.icon)}</span>
+        <span class="row-text"><b>${this._esc(i.name)}</b></span>
+        <span class="row-value" data-state>—</span>
+      </button>`,
+    );
+  }
+
+  _panelHead(icon, title, subtitle) {
+    return `<div class="panel-head">
+      <ha-icon icon="${this._esc(icon || "mdi:cog-outline")}"></ha-icon>
+      <div><b>${this._esc(title)}</b>${subtitle ? `<small>${this._esc(subtitle)}</small>` : ""}</div>
+    </div>`;
+  }
+
+  // ---- pages ----
+
+  _home() {
+    const o = this._config.overview || {};
+    const m = o.mode || {};
+    return `<div class="page" data-page="home">
+      <div class="page-panel">
+        <div class="section">
+          ${this._panelHead("mdi:shield-check-outline", "Systemstatus", "Kontrolleres løbende")}
+          <div class="row-list">${(o.status_items || []).map((i) => this._status(i)).join("")}</div>
+        </div>
+        <div class="section">
+          ${this._panelHead("mdi:home-switch", "Husets drift", "Vælg én samlet tilstand for hele hjemmet")}
+          <div class="mode-row">${(m.options || [])
+            .map(
+              (x) =>
+                `<button class="mode" data-action="mode" data-entity="${this._esc(m.entity)}" data-option="${this._esc(x.value)}">
+                  <ha-icon icon="${this._esc(x.icon)}"></ha-icon><span>${this._esc(x.name)}</span>
+                </button>`,
+            )
+            .join("")}</div>
+        </div>
+        <div class="section">
+          ${this._panelHead("mdi:monitor-dashboard", "Dashboard", "Visning og betjening på vægpaneler")}
+          <div class="toggle-grid">${(o.dashboard_items || []).map((i) => this._toggleTile(i)).join("")}</div>
+          ${o.font_entity ? `<div class="row-list" style="margin-top:8px">${this._entityRow({ entity: o.font_entity, name: "Dashboard-font", icon: "mdi:format-font" })}</div>` : ""}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  _room(r) {
+    const toggles = [];
+    const numbers = [];
+    if (r.automation) toggles.push(this._toggleTile({ entity: r.automation, name: "Presence-lys", icon: "mdi:motion-sensor" }));
+    if (r.persistent) toggles.push(this._toggleTile({ entity: r.persistent, name: "Vedvarende", icon: "mdi:account-eye" }));
+    if (r.lux_enabled) toggles.push(this._toggleTile({ entity: r.lux_enabled, name: "Lux-krav", icon: "mdi:brightness-auto" }));
+    if (r.vacuum_exempt) toggles.push(this._toggleTile({ entity: r.vacuum_exempt, name: "Ej støvsuger", icon: "mdi:robot-vacuum-off" }));
+    if (r.timeout) numbers.push(this._number({ entity: r.timeout }, "Sluk efter"));
+    if (r.lux_threshold) numbers.push(this._number({ entity: r.lux_threshold, sensor_entity: r.lux_sensor, sensor_unit: " lx" }, "Lux-grænse"));
+    if (r.delay) numbers.push(this._number({ entity: r.delay }, "Tænd efter"));
+    return `<div class="subcard">
+      ${this._panelHead(r.icon || "mdi:floor-plan", r.name, `${toggles.length + numbers.length} indstillinger`)}
+      ${toggles.length ? `<div class="toggle-grid">${toggles.join("")}</div>` : ""}
+      ${numbers.length ? `<div class="row-list" ${toggles.length ? 'style="margin-top:8px"' : ""}>${numbers.join("")}</div>` : ""}
+    </div>`;
+  }
+
+  _lighting() {
+    return `<div class="page" data-page="lighting" hidden>
+      <div class="page-panel">
+        <div class="section">
+          ${this._panelHead("mdi:motion-sensor", "Rum", "Presence, lux og timing pr. rum")}
+          <div class="subgrid">${(this._config.rooms || []).map((r) => this._room(r)).join("")}</div>
+        </div>
+        <div class="section">
+          ${this._panelHead("mdi:lightbulb-night", "Ambientlys", "Nat- og orienteringslys")}
+          <div class="toggle-grid">${(this._config.ambient_items || []).map((i) => this._toggleTile(i)).join("")}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  _group(g) {
+    if (g.kind === "toggle") {
+      const items = (g.items || []).map((i) => this._toggleTile(i)).join("");
+      return `<div class="subcard">
+        ${this._panelHead(g.icon, g.title, g.subtitle)}
+        <div class="toggle-grid">${items}</div>
+      </div>`;
+    }
+    const items = (g.items || []).map((i) => (g.kind === "number" ? this._number(i) : this._entityRow(i))).join("");
+    return `<div class="subcard">
+      ${this._panelHead(g.icon, g.title, g.subtitle)}
+      <div class="row-list">${items}</div>
+    </div>`;
+  }
+
+  _routines() {
+    return `<div class="page" data-page="routines" hidden>
+      <div class="page-panel">
+        <div class="subgrid">${(this._config.routine_groups || []).map((g) => this._group(g)).join("")}</div>
+      </div>
+    </div>`;
+  }
+
+  _scene() {
+    const s = this._config.scene;
+    if (!s) return "";
+    const toggle = this._toggle({ entity: s.toggle_entity, name: s.toggle_name, icon: "mdi:movie-open" });
+    const lights = (s.lights || [])
+      .map((l) => {
+        this._seen.add(l.brightness_entity);
+        this._seen.add(l.color_entity);
+        return `<div class="row scene-row">
+          <span class="row-icon">${this._icon(l.icon)}</span>
+          <span class="row-text"><b>${this._esc(l.name)}</b><small><span data-entity="${this._esc(l.brightness_entity)}" data-view="inline">—</span> · <span data-entity="${this._esc(l.color_entity)}" data-view="inline">—</span></small></span>
+          <button class="scene-btn" data-action="more" data-more-entity="${this._esc(l.brightness_entity)}">Lys</button>
+          <button class="scene-btn" data-action="more" data-more-entity="${this._esc(l.color_entity)}">Farve</button>
+        </div>`;
+      })
+      .join("");
+    return `<div class="section">
+      ${this._panelHead("mdi:movie-open", s.title, "Samlet filmprofil")}
+      <div class="row-list">${toggle}</div>
+      <div class="row-list" style="margin-top:10px">${lights}</div>
+    </div>`;
+  }
+
+  _equipment() {
+    const sceneHtml = this._scene();
+    return `<div class="page" data-page="equipment" hidden>
+      <div class="page-panel">
+        <div class="subgrid">${(this._config.control_groups || []).map((g) => this._group(g)).join("")}</div>
+        ${sceneHtml}
+      </div>
+    </div>`;
+  }
+
+  _system() {
+    const o = this._config.operations || {};
+    const groups = (o.groups || [])
+      .map(
+        (g) => `<div class="subcard">
+          ${this._panelHead(g.icon, g.title, g.subtitle)}
+          <div class="row-list">${(g.items || [])
+            .map(
+              (a) => `<button class="row interactive action${a.danger ? " danger" : ""}" data-action="service" data-payload="${this._esc(JSON.stringify(a))}">
+                <span class="row-icon">${this._icon(a.icon)}</span>
+                <span class="row-text"><b>${this._esc(a.name)}</b><small>${this._esc(a.description || "")}</small></span>
+                ${this._icon("mdi:chevron-right")}
+              </button>`,
+            )
+            .join("")}</div>
+        </div>`,
+      )
+      .join("");
+    return `<div class="page" data-page="system" hidden>
+      <div class="page-panel">
+        <div class="section">
+          ${this._panelHead("mdi:gauge", "Systemmålinger", "Status for kerne og hardware")}
+          <div class="row-list">${(o.metrics || []).map((i) => this._metric(i)).join("")}</div>
+        </div>
+        <div class="section">
+          ${this._panelHead("mdi:cog-outline", "Handlinger", "Genveje og sikre systemkommandoer")}
+          <div class="subgrid">${groups}</div>
+        </div>
+      </div>
+      ${o.info_path ? `<button class="back-btn" data-nav="${this._esc(o.info_path)}"><ha-icon icon="mdi:information-outline"></ha-icon><div><b>Systeminfo</b></div>${this._icon("mdi:arrow-right")}</button>` : ""}
+    </div>`;
+  }
+
+  // ---- shell ----
+
+  _render() {
+    this._seen = new Set();
+    this.shadowRoot.innerHTML = `<style>${this._styles()}</style>
+    <ha-card>
+      <div class="head">
+        <ha-icon icon="mdi:tune-variant"></ha-icon>
+        <div><strong>${this._esc(this._config.title)}</strong><span>Modes, automatik og drift samlet</span></div>
+        <div class="head-spacer"></div>
+        <div class="head-badge"><b data-health-summary>Kontrollerer…</b><small data-health-detail>—</small></div>
+      </div>
+      <div class="tabs">${TABS.map(([id, n, i]) => `<button class="tab" data-action="tab" data-tab="${id}"><ha-icon icon="${i}"></ha-icon><span>${n}</span></button>`).join("")}</div>
+      ${this._home()}${this._lighting()}${this._routines()}${this._equipment()}${this._system()}
+    </ha-card>`;
+    this._select(this._tab);
+  }
+
+  _find(id) {
+    let out = null;
+    const scan = (v) => {
+      if (out) return;
+      if (Array.isArray(v)) v.forEach(scan);
+      else if (v && typeof v === "object") {
+        if (v.entity === id) out = v;
+        else Object.values(v).forEach(scan);
+      }
+    };
+    scan(this._config);
+    return out;
+  }
+
+  _patch() {
+    if (!this._hass || !this.shadowRoot.querySelector("ha-card")) return;
+    const statuses = [...this.shadowRoot.querySelectorAll('[data-view="status"]')];
+    let problems = 0;
+    statuses.forEach((n) => {
+      const i = { entity: n.dataset.entity, binary: n.dataset.binary === "true" };
+      const p = this._problem(i);
+      problems += p ? 1 : 0;
+      n.classList.toggle("problem", p);
+      n.classList.toggle("ok", !p);
+      n.querySelector("[data-state]").textContent = !this._available(i.entity) ? "Ikke tilgængelig" : p ? (i.binary ? "Registreret" : `${this._state(i.entity)} kræver fokus`) : "Alt er normalt";
+    });
+    const sum = this.shadowRoot.querySelector("[data-health-summary]");
+    const detail = this.shadowRoot.querySelector("[data-health-detail]");
+    if (sum) sum.textContent = problems ? `${problems} kræver fokus` : "Alt fungerer";
+    if (detail) detail.textContent = `${statuses.length - problems} af ${statuses.length} områder er OK`;
+    const badge = this.shadowRoot.querySelector(".head-badge");
+    if (badge) badge.classList.toggle("warn", problems > 0);
+
+    this.shadowRoot.querySelectorAll('[data-view="toggle"]').forEach((n) => {
+      const a = this._available(n.dataset.entity);
+      const on = a && this._on(n.dataset.entity);
+      n.classList.toggle("on", on);
+      n.classList.toggle("missing", !a);
+      n.querySelector("[data-state]").textContent = a ? (on ? "Aktiv" : "Deaktiv") : "Ikke tilgængelig";
+    });
+    this.shadowRoot.querySelectorAll('[data-view="number"]').forEach((n) => {
+      const e = this._e(n.dataset.entity);
+      const unit = e?.attributes?.unit_of_measurement || "";
+      n.classList.toggle("missing", !this._available(n.dataset.entity));
+      n.querySelector("[data-value]").textContent = e ? `${e.state}${unit ? ` ${unit}` : ""}` : "—";
+      if (n.dataset.sensor) n.querySelector("[data-measured]").textContent = `Nu ${this._state(n.dataset.sensor)}${n.dataset.sensorUnit || ""}`;
+    });
+    this.shadowRoot.querySelectorAll('[data-view="entity"]').forEach((n) => {
+      n.classList.toggle("missing", !this._available(n.dataset.entity));
+      n.querySelector("[data-state]").textContent = this._friendly(n.dataset.entity);
+    });
+    this.shadowRoot.querySelectorAll('[data-view="metric"]').forEach((n) => {
+      const i = this._find(n.dataset.entity);
+      n.classList.toggle("missing", !this._available(n.dataset.entity));
+      n.querySelector("[data-state]").textContent = `${this._state(n.dataset.entity)}${i?.unit || ""}`;
+    });
+    this.shadowRoot.querySelectorAll('[data-view="inline"]').forEach((n) => (n.textContent = this._friendly(n.dataset.entity)));
+
+    const mode = this._config.overview?.mode?.entity;
+    const state = mode ? this._state(mode) : "—";
+    const current = this.shadowRoot.querySelector("[data-mode-current]");
+    if (current) current.textContent = state;
+    this.shadowRoot.querySelectorAll(".mode").forEach((n) => n.classList.toggle("active", n.dataset.option === state));
+  }
+
+  _select(tab) {
+    if (!TABS.some(([id]) => id === tab)) tab = "home";
+    this._tab = tab;
+    this.shadowRoot.querySelectorAll("[data-tab]").forEach((b) => {
+      const active = b.dataset.tab === tab;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-selected", active);
+    });
+    this.shadowRoot.querySelectorAll("[data-page]").forEach((p) => {
+      p.hidden = p.dataset.page !== tab;
+    });
+  }
+
+  _call(s, d = {}, t) {
+    const [domain, name] = s.split(".");
+    return this._hass?.callService(domain, name, d, t);
+  }
+  _more(id) {
+    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: id }, bubbles: true, composed: true }));
+  }
+  _nav(path) {
+    history.pushState(null, "", path);
+    window.dispatchEvent(new Event("location-changed"));
+  }
+
+  _click(e) {
+    const b = e.target.closest?.("[data-action]");
+    if (!b) return;
+    const a = b.dataset.action;
+    if (a === "tab") this._select(b.dataset.tab);
+    else if (a === "toggle" && this._available(b.dataset.entity)) this._call("homeassistant.toggle", {}, { entity_id: b.dataset.entity });
+    else if (a === "more") this._more(b.dataset.moreEntity || b.dataset.entity);
+    else if (a === "mode") this._call("input_select.select_option", { option: b.dataset.option }, { entity_id: b.dataset.entity });
+    else if (a === "step")
+      this._call(`input_number.${b.dataset.direction === "+" ? "increment" : "decrement"}`, {}, { entity_id: b.closest("[data-entity]").dataset.entity });
+    else if (a === "nav") this._nav(b.dataset.path);
+    else if (a === "service") {
+      const i = JSON.parse(b.dataset.payload);
+      if (i.confirm && !confirm(i.confirm)) return;
+      if (i.service) this._call(i.service, i.data || {}, i.entity ? { entity_id: i.entity } : i.target);
+      else if (i.path) this._nav(i.path);
+    }
+  }
+
+  _styles() {
+    return `
+      :host{display:block;--good:var(--dashboard-success, var(--success-color, #20e3a2));--warn:var(--dashboard-warning, var(--warning-color, #f59e0b));--danger:var(--dashboard-danger, var(--error-color, #ef4444));--accent:var(--dashboard-accent, var(--info-color, #38bdf8));--edge:var(--dashboard-border-neutral, var(--divider-color, rgba(127,145,165,.2)));--muted:var(--dashboard-icon-muted, var(--disabled-text-color, #64748b));color:var(--primary-text-color)}
+      *{box-sizing:border-box}
+      button{font:inherit;color:inherit}
+      button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+      ha-card{padding:16px;border-radius:22px;background:var(--card-background-color);border:1px solid var(--edge);color:var(--primary-text-color);box-shadow:var(--ha-card-box-shadow)}
+      .head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+      .head ha-icon{--mdc-icon-size:24px;color:var(--accent)}
+      .head strong{display:block;font-size:16px}
+      .head span{display:block;color:var(--secondary-text-color);font-size:12px;margin-top:2px}
+      .head-spacer{flex:1}
+      .head-badge{flex:0 0 auto;text-align:right}
+      .head-badge b{display:block;font-size:13px;font-weight:800}
+      .head-badge small{display:block;margin-top:2px;color:var(--secondary-text-color);font-size:10.5px}
+      .head-badge.warn b{color:var(--danger)}
+      .tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+      .tab{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--secondary-text-color);font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+      .tab span{overflow:hidden;text-overflow:ellipsis}
+      .tab ha-icon{--mdc-icon-size:16px}
+      .tab.active{color:#fff;background:var(--accent);border-color:var(--accent)}
+      .page[hidden]{display:none}
+      .page-panel{border:1px solid var(--edge);border-radius:16px;padding:14px;background:var(--card-background-color)}
+      .section{padding-top:14px;margin-top:14px;border-top:1px solid var(--edge)}
+      .section:first-child{padding-top:0;margin-top:0;border-top:0}
+      .subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+      .subcard{min-width:0;border-radius:13px;padding:11px;background:color-mix(in srgb,var(--muted) 6%,transparent)}
+      .panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+      .panel-head ha-icon{--mdc-icon-size:18px;color:var(--accent)}
+      .panel-head b{display:block;font-size:13px}
+      .panel-head small{display:block;margin-top:2px;color:var(--secondary-text-color);font-size:11px}
+      .row-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--edge);border-radius:14px;overflow:hidden}
+      .row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card-background-color);border:0;width:100%;text-align:left;color:inherit;font:inherit}
+      .row+.row{border-top:1px solid var(--edge)}
+      .row.interactive{cursor:pointer}
+      .row.missing{opacity:.6}
+      .row-icon{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+      .row-icon ha-icon{--mdc-icon-size:15px}
+      .row-text{flex:1;min-width:0}
+      .row-text b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .row-text small{display:block;margin-top:2px;color:var(--secondary-text-color);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .row-value{font-size:12px;font-weight:800;color:var(--primary-text-color);flex:0 0 auto}
+      .row > ha-icon{--mdc-icon-size:16px;color:var(--muted);flex:0 0 auto}
+      .row[data-view="status"] .row-icon{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+      .row[data-view="status"].problem .row-icon{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+      .row[data-view="status"] .dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:0 0 auto}
+      .row[data-view="status"].problem .dot{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+      .toggle-btn{border-left:3px solid transparent}
+      .toggle-btn .row-icon{color:var(--muted)}
+      .toggle-btn > ha-icon:last-child{--mdc-icon-size:18px;color:var(--edge);flex:0 0 auto}
+      .row.on.toggle-btn{background:color-mix(in srgb,var(--good) 9%,transparent);border-left-color:var(--good)}
+      .row.on.toggle-btn .row-icon{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+      .row.on.toggle-btn > ha-icon:last-child{color:var(--good)}
+      .toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:7px}
+      .tile-btn{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:11px 6px;border:1px solid var(--edge);border-radius:13px;background:var(--card-background-color);cursor:pointer;min-width:0}
+      .tile-btn .row-icon{width:30px;height:30px}
+      .tile-btn b{max-width:100%;font-size:10.5px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .tile-btn small{font-size:9px;font-weight:800;color:var(--secondary-text-color);text-transform:uppercase;letter-spacing:.03em}
+      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 45%,var(--edge));background:color-mix(in srgb,var(--good) 9%,transparent)}
+      .tile-btn.on .row-icon{color:var(--good);background:color-mix(in srgb,var(--good) 16%,transparent)}
+      .tile-btn.on small{color:var(--good)}
+      .tile-btn.missing{opacity:.55}
+      .stepper{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+      .stepper button{width:26px;height:26px;border-radius:8px;border:1px solid var(--edge);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-size:15px;font-weight:900;cursor:pointer;line-height:1}
+      .stepper strong{min-width:56px;text-align:center;font-size:11.5px;font-weight:800}
+      .row[data-view="entity"] .row-icon,.row[data-view="metric"] .row-icon{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+      .mode-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+      .mode{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--secondary-text-color);font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+      .mode ha-icon{--mdc-icon-size:15px}
+      .mode.active{color:#fff;background:var(--accent);border-color:var(--accent)}
+      .scene-row{gap:8px}
+      .scene-btn{flex:0 0 auto;padding:6px 10px;border-radius:999px;border:1px solid var(--edge);background:transparent;color:var(--accent);font-size:10.5px;font-weight:800;cursor:pointer}
+      .row.action .row-icon{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+      .row.action.danger .row-icon{color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
+      .row.action.danger .row-text b{color:var(--danger)}
+      .back-btn{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border-radius:15px;border:1px solid var(--edge);background:transparent;color:var(--primary-text-color);cursor:pointer;text-align:left}
+      .back-btn ha-icon:first-child{--mdc-icon-size:20px;color:var(--accent)}
+      .back-btn div{flex:1}
+      .back-btn ha-icon:last-child{--mdc-icon-size:16px;color:var(--muted)}
+      button:hover{border-color:color-mix(in srgb,var(--accent) 35%,var(--edge))}
+      button:active{transform:translateY(1px)}
+      @media(max-width:650px){.tab span{display:none}.tab{padding:10px 4px}.subgrid{grid-template-columns:1fr}}
+      @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+    `;
+  }
 }
-class HASettingsCenterCardEditor extends HTMLElement{constructor(){super();this.attachShadow({mode:"open"})}connectedCallback(){if(this._interactionBound)return;this._interactionBound=true;this.addEventListener("pointerdown",()=>{this._interactionUntil=Date.now()+900},{capture:true})}
- setConfig(c){this._config=c;this._render()}set hass(h){this._hass=h} _render(){this.shadowRoot.innerHTML=`<style>:host{display:block;padding:16px}label{display:block;margin:10px 0 5px;font-weight:600}input,textarea{box-sizing:border-box;width:100%;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}textarea{min-height:240px;font-family:monospace}</style><label>Titel</label><input id="title" value="${String(this._config?.title||"Kontrolcenter").replace(/"/g,"&quot;")}"><label>Avanceret konfiguration (JSON)</label><textarea id="json">${JSON.stringify(this._config,null,2)}</textarea>`;this.shadowRoot.querySelector('#title').onchange=e=>this._emit({...this._config,title:e.target.value});this.shadowRoot.querySelector('#json').onchange=e=>{try{this._emit(JSON.parse(e.target.value))}catch{e.target.setCustomValidity('Ugyldig JSON');e.target.reportValidity()}}} _emit(config){this.dispatchEvent(new CustomEvent('config-changed',{detail:{config},bubbles:true,composed:true}))}}
-if(!customElements.get("ha-settings-center-card"))customElements.define("ha-settings-center-card",HASettingsCenterCard);if(!customElements.get("ha-settings-center-card-editor"))customElements.define("ha-settings-center-card-editor",HASettingsCenterCardEditor);window.customCards=window.customCards||[];window.customCards.push({type:"ha-settings-center-card",name:"HA Settings Center Card",description:"Samlet responsivt kontrolcenter til Home Assistant",preview:true});console.info(`%c HA SETTINGS CENTER %c v${VERSION} `,"color:white;background:#357fc4;font-weight:700","color:#62b5ff;background:#111827")
+
+class HASettingsCenterCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._sig = "";
+  }
+  setConfig(config) {
+    this._config = config;
+    const s = JSON.stringify(config);
+    if (s !== this._sig) {
+      this._sig = s;
+      this._render();
+    }
+  }
+  set hass(hass) {
+    this._hass = hass;
+  }
+  _render() {
+    this.shadowRoot.innerHTML = `<style>
+      :host{display:block;padding:4px}
+      .editor{display:grid;gap:12px;color:var(--primary-text-color)}
+      label{display:block;margin-bottom:4px;color:var(--secondary-text-color);font-size:11px}
+      input,select,textarea{box-sizing:border-box;width:100%;padding:9px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}
+      textarea{min-height:260px;font-family:monospace;font-size:11.5px}
+    </style>
+    <div class="editor">
+      <div><label>Titel</label><input id="title" value="${String(this._config?.title || "Indstillinger").replace(/"/g, "&quot;")}"></div>
+      <div><label>Startfane</label><select id="tab">${TABS.map(([id, n]) => `<option value="${id}" ${this._config?.default_tab === id ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+      <div><label>Avanceret konfiguration (JSON)</label><textarea id="json">${JSON.stringify(this._config, null, 2)}</textarea></div>
+    </div>`;
+    this.shadowRoot.querySelector("#title").onchange = (e) => this._emit({ ...this._config, title: e.target.value });
+    this.shadowRoot.querySelector("#tab").onchange = (e) => this._emit({ ...this._config, default_tab: e.target.value });
+    this.shadowRoot.querySelector("#json").onchange = (e) => {
+      try {
+        this._emit(JSON.parse(e.target.value));
+      } catch {
+        e.target.setCustomValidity("Ugyldig JSON");
+        e.target.reportValidity();
+      }
+    };
+  }
+  _emit(config) {
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+  }
+}
+
+if (!customElements.get("ha-settings-center-card")) customElements.define("ha-settings-center-card", HASettingsCenterCard);
+if (!customElements.get("ha-settings-center-card-editor")) customElements.define("ha-settings-center-card-editor", HASettingsCenterCardEditor);
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: "ha-settings-center-card",
+  name: "HA Settings Center Card",
+  description: "Samlet indstillingscenter uden gentagne funktioner",
+  preview: true,
+});
+console.info(
+  `%c HA SETTINGS CENTER %c v${VERSION} `,
+  "color:#fff;background:#2563eb;font-weight:700",
+  "color:#60a5fa;background:#0f172a",
+);

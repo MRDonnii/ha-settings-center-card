@@ -1,23 +1,23 @@
 # HA Settings Center Card
 
-Et samlet, responsivt kontrolcenter til Home Assistant med faner til overblik, rutiner, direkte styring og drift.
+Et samlet, responsivt kontrolcenter til Home Assistant med faner til overblik, lysautomatik, rutiner, udstyr og drift.
 
 ![Anonymiseret preview](docs/preview.png)
 
 ## Funktioner
 
-- Systemstatus og hus-mode i ét overblik
-- Toggle-grupper til automations, helpers, lys, maskiner og øvrige funktioner
+- Samme designsprog som husets øvrige kort (`ha-camera-hub-card`, `ha-pool-settings-card` m.fl.): faner, kompakte rækkelister og temavariabler med sikre fallback-farver — intet tonet hero eller tungt dybdedesign
+- Hver fane er **ét samlet kort** (`page-panel`) med lette afsnit adskilt af tynde streger i stedet for mange separate boxede paneler
+- Til/fra-funktioner vises som kompakte knap-fliser i et grid (`toggle-grid`), ikke fulde rækker med switch-widgets — de fylder mindre og kan bygges op i pæne rækker
+- Rum og grupper samles i lette "subcards" inden i sidens ene kort, så layoutet ikke opleves fragmenteret
+- Systemstatus og hus-mode i ét overblik, med en lille statusbadge i toppen der altid er synlig
 - Talstyring med plus/minus og valgfri live-sensorværdi
 - Direkte adgang til input-select og input-datetime via Home Assistants dialog
 - Samlet sceneopsætning med lysstyrke og farve
 - Driftstal og handlinger med bekræftelse ved kritiske kommandoer
-- Designsystem fra Varme-centeret med selvstændige fanefliser, tonet hero og tydelige nøgletal
-- Professionelt kontrolpaneldesign med statusrails og præcise accentmarkeringer
 - Stabil fanenavigation, som ikke afbrydes af Home Assistants state-opdateringer
 - Responsivt layout uden vandret overflow
 - GUI-editor til titel og avanceret JSON-konfiguration
-- Home Assistant-temavariabler med sikre fallback-farver
 
 ## Installation
 
