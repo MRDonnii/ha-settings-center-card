@@ -1,4 +1,4 @@
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 
 const TABS = [
   ["home", "Hjem", "mdi:home-heart"],
@@ -154,7 +154,7 @@ class HASettingsCenterCard extends HTMLElement {
     return this._once(
       i.entity,
       `<button class="tile-btn" data-action="toggle" data-entity="${this._esc(i.entity)}" data-view="toggle">
-        <span class="row-icon">${this._icon(i.icon || "mdi:toggle-switch-outline")}</span>
+        ${this._icon(i.icon || "mdi:toggle-switch-outline")}
         <b>${this._esc(i.name)}</b>
         <small data-state>Kontrollerer…</small>
       </button>`,
@@ -494,7 +494,7 @@ class HASettingsCenterCard extends HTMLElement {
       .page-panel{border:1px solid var(--edge);border-radius:16px;padding:14px;background:var(--card-background-color)}
       .section{padding-top:14px;margin-top:14px;border-top:1px solid var(--edge)}
       .section:first-child{padding-top:0;margin-top:0;border-top:0}
-      .subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+      .subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;align-items:start}
       .subcard{min-width:0;border-radius:13px;padding:11px;background:color-mix(in srgb,var(--muted) 6%,transparent)}
       .panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
       .panel-head ha-icon{--mdc-icon-size:18px;color:var(--accent)}
@@ -522,15 +522,14 @@ class HASettingsCenterCard extends HTMLElement {
       .row.on.toggle-btn{background:color-mix(in srgb,var(--good) 9%,transparent);border-left-color:var(--good)}
       .row.on.toggle-btn .row-icon{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
       .row.on.toggle-btn > ha-icon:last-child{color:var(--good)}
-      .toggle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:7px}
-      .tile-btn{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:11px 6px;border:1px solid var(--edge);border-radius:13px;background:var(--card-background-color);cursor:pointer;min-width:0}
-      .tile-btn .row-icon{width:30px;height:30px}
-      .tile-btn b{max-width:100%;font-size:10.5px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .tile-btn small{font-size:9px;font-weight:800;color:var(--secondary-text-color);text-transform:uppercase;letter-spacing:.03em}
-      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 45%,var(--edge));background:color-mix(in srgb,var(--good) 9%,transparent)}
-      .tile-btn.on .row-icon{color:var(--good);background:color-mix(in srgb,var(--good) 16%,transparent)}
-      .tile-btn.on small{color:var(--good)}
-      .tile-btn.missing{opacity:.55}
+      .toggle-grid{display:flex;flex-wrap:wrap;gap:6px}
+      .tile-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 11px 7px 8px;border:1px solid var(--edge);border-radius:999px;background:var(--card-background-color);cursor:pointer;white-space:nowrap}
+      .tile-btn ha-icon{--mdc-icon-size:15px;color:var(--muted);flex:0 0 auto}
+      .tile-btn b{font-size:11px;font-weight:700;color:var(--primary-text-color)}
+      .tile-btn small{display:none}
+      .tile-btn.on{border-color:color-mix(in srgb,var(--good) 50%,var(--edge));background:color-mix(in srgb,var(--good) 11%,transparent)}
+      .tile-btn.on ha-icon{color:var(--good)}
+      .tile-btn.missing{opacity:.5}
       .stepper{display:flex;align-items:center;gap:8px;flex:0 0 auto}
       .stepper button{width:26px;height:26px;border-radius:8px;border:1px solid var(--edge);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-size:15px;font-weight:900;cursor:pointer;line-height:1}
       .stepper strong{min-width:56px;text-align:center;font-size:11.5px;font-weight:800}
