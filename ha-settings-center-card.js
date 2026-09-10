@@ -1,4 +1,4 @@
-const VERSION = "0.4.4";
+const VERSION = "0.4.5";
 
 const TABS = [
   ["home", "Hjem", "mdi:home-heart"],
@@ -535,8 +535,8 @@ class HASettingsCenterCard extends HTMLElement {
       .stepper button{width:26px;height:26px;border-radius:8px;border:1px solid var(--edge);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-size:15px;font-weight:900;cursor:pointer;line-height:1}
       .stepper strong{min-width:56px;text-align:center;font-size:11.5px;font-weight:800}
       .row[data-view="entity"] .row-icon,.row[data-view="metric"] .row-icon{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
-      .mode-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
-      .mode{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--secondary-text-color);font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+      .mode-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+      .mode{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:9px 13px;border-radius:12px;border:1px solid var(--edge);background:transparent;color:var(--secondary-text-color);font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
       .mode ha-icon{--mdc-icon-size:15px}
       .mode.active{color:#fff;background:var(--accent);border-color:var(--accent)}
       .scene-row{gap:8px}
