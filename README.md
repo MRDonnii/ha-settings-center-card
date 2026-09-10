@@ -6,7 +6,7 @@ Et samlet, responsivt kontrolcenter til Home Assistant med faner til overblik, l
 
 ## Funktioner
 
-- Samme designsprog som husets øvrige kort (`ha-camera-hub-card`, `ha-pool-settings-card` m.fl.): faner, kompakte rækkelister og temavariabler med sikre fallback-farver — intet tonet hero eller tungt dybdedesign
+- Samme designsprog som husets øvrige kort (`ha-camera-hub-card`, `ha-pool-settings-card` m.fl.): faner, kompakte rækkelister og temavariabler med sikre fallback-farver samt temaets gradient på hovedfladen
 - Hver fane er **ét samlet kort** (`page-panel`) med lette afsnit adskilt af tynde streger i stedet for mange separate boxede paneler
 - Til/fra-funktioner vises som kompakte knap-fliser i et grid (`toggle-grid`), ikke fulde rækker med switch-widgets — de fylder mindre og kan bygges op i pæne rækker
 - Rum og grupper samles i lette "subcards" inden i sidens ene kort, så layoutet ikke opleves fragmenteret
